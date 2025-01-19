@@ -60,10 +60,25 @@ class JobSearchAndPreparation:
             parameters={
                 "type": "object",
                 "properties": {
-                    "cv_file_path": {"type": "string"},
-                    "cv_file_name": {"type": "string"},
-                    "keywords": {"type": "array", "items": {"type": "string"}},
-                    "location": {"type": "string"},
+                    "cv_file_path": {
+                        "type": "string",
+                        "description": "The file path pointing to the CV file to be used for customizing",
+                    },
+                    "cv_file_name": {
+                        "type": "string",
+                        "description": "The name and extensionof the CV file to be used for customizing",
+                    },
+                    "keywords": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                        },
+                        "description": "The keywords to search for in the job listings",
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "The location to search for job listings",
+                    },
                 },
                 "required": ["cv_file_path", "cv_file_name", "keywords", "location"],
             },
@@ -94,7 +109,10 @@ class JobApplicationsSearch:
             parameters={
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string"},
+                    "query": {
+                        "type": "string",
+                        "description": "The query to search in the existing applications database",
+                    },
                 },
                 "required": ["query"],
             },

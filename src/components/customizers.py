@@ -76,7 +76,7 @@ class CvCustomizer:
 
         contents = response.choices[0].message.content
         dict_contents = json.loads(contents)  # type: ignore
-        output_path = Path(f"../data/{uuid4()}.pdf")
+        output_path = Path(f"../data/output/{uuid4()}.pdf")
         md2pdf(
             pdf_file_path=output_path,
             md_content=dict_contents["resume"].replace("\n", ""),
