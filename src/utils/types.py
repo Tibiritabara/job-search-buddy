@@ -30,6 +30,10 @@ class JobListing(BaseModel):
     application_date: datetime.datetime | None = None
 
 
+class JobListings(BaseModel):
+    listings: list[JobListing]
+
+
 class CvCustomizationResponse(BaseModel):
     resume: FilePath
     changes: list[str]
@@ -40,3 +44,7 @@ class EmailValidationResponse(BaseModel):
     subject: str
     is_job_related: bool
     notification_category: str
+
+
+class EmailValidationResponses(BaseModel):
+    responses: list[EmailValidationResponse]

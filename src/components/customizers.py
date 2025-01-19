@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from haystack import component
@@ -7,29 +8,30 @@ from md2pdf.core import md2pdf
 
 from utils.clients import mistral_client
 from utils.config import get_env
-from utils.types import CvCustomizationResponse, JobListing
+from utils.types import CvCustomizationResponse, JobListing, JobListings
 
 env = get_env()
 
 
 @component
 class CvCustomizer:
-    @component.output_types(listings=list[JobListing])
+    @component.output_types(listings=dict[str, Any])
     def run(
         self,
-        cv_contents: str,
-        listings: list[JobListing],
-    ) -> list[JobListing]:
-        for job_listing in listings:
+        cv_contents: dict[str, Any],
+        listings: dict[str, Any],
+    ) -> dict[str, Any]:
+        job_listings = [JobListing(**job_listing) for job_listing in listings]
+        for job_listing in job_listings:
             if job_listing.description is None:
                 continue
             customization_response = self.__customize_cv(
-                cv_contents,
+                cv_contents["cv_text"],
                 job_listing.description,
             )
             job_listing.cv_path = customization_response.resume
             job_listing.cv_changes = customization_response.changes
-        return listings
+        return JobListings(listings=job_listings).model_dump()
 
     def __customize_cv(
         self,

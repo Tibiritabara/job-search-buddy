@@ -1,12 +1,34 @@
+import logging
+
+from haystack import tracing
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.generators.utils import print_streaming_chunk
-from haystack_experimental.components.tools import ToolInvoker
-from haystack_experimental.dataclasses import ChatMessage
+from haystack.components.tools import ToolInvoker
+from haystack.dataclasses import ChatMessage
+from haystack.tracing.logging_tracer import LoggingTracer
+from haystack.utils import Secret
 from haystack_integrations.components.generators.mistral import MistralChatGenerator
 
 from tools.emails import EmailValidator
 from tools.jobs import JobApplicationsSearch, JobSearchAndPreparation
 from utils.config import get_env
 
+logging.basicConfig(
+    format="%(levelname)s - %(name)s -  %(message)s", level=logging.WARNING
+)
+logging.getLogger("haystack").setLevel(logging.DEBUG)
+
+tracing.tracer.is_content_tracing_enabled = (
+    True  # to enable tracing/logging content (inputs/outputs)
+)
+tracing.enable_tracing(
+    LoggingTracer(
+        tags_color_strings={
+            "haystack.component.input": "\x1b[1;31m",
+            "haystack.component.name": "\x1b[1;34m",
+        }
+    )
+)
 env = get_env()
 
 
@@ -46,16 +68,27 @@ If you have enough information to answer the user query without using any more t
 Thought: [your reasoning process, decide whether you need a tool or not]
 Final Answer: [final answer to the human user's query after observation]
 """
-prompt_template = {
-    "system": [{"role": "system", "content": agent_prompt}],
-    "chat": [{"role": "user", "content": "Question: {query}\nThought: "}],
-}
 
-mistral_generator = MistralChatGenerator(
-    api_key=env.mistral_api_key.get_secret_value(),  # pylint: disable=no-member
+alternative_prompt = """Prepare a tool call if needed, otherwise use your knowledge to respond to the user.
+If the invocation of a tool requires the result of another tool, prepare only one call at a time.
+Each time you receive the result of a tool call, ask yourself: "Am I done with the task?".
+If not and you need to invoke another tool, prepare the next tool call.
+If you are done, respond with just the final result."""
+
+chat = MistralChatGenerator(
     streaming_callback=print_streaming_chunk,  # type: ignore
 )  # type: ignore
 
+chat = OpenAIChatGenerator(
+    api_key=Secret.from_token(env.openai_api_key.get_secret_value()),
+    model="gpt-4o",
+    streaming_callback=print_streaming_chunk,
+    tools=[
+        email_validation_tool,
+        job_search_and_preparation_tool,
+        job_applications_search_tool,
+    ],
+)
 
 tool_invoker = ToolInvoker(
     tools=[
@@ -76,7 +109,7 @@ while True:
     while True:
         print("⌛ iterating...")
 
-        replies = mistral_generator.run(messages=messages)["replies"]
+        replies = chat.run(messages=messages)["replies"]
         messages.extend(replies)
 
         # Check for tool calls and handle them

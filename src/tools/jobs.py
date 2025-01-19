@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any
 
 from haystack import Pipeline
@@ -43,10 +42,9 @@ class JobSearchAndPreparation:
             keywords: list[str],
             location: str,
         ) -> dict[str, Any]:
-            file_path = Path(cv_file_path)
             return pipeline.run(
                 {
-                    "cv_file_path": file_path,
+                    "cv_file_path": cv_file_path,
                     "cv_file_name": cv_file_name,
                     "keywords": keywords,
                     "location": location,
@@ -62,7 +60,7 @@ class JobSearchAndPreparation:
                 "properties": {
                     "cv_file_path": {
                         "type": "string",
-                        "description": "The file path pointing to the CV file to be used for customizing",
+                        "description": "The path to the CV file. Only send the path as a string",
                     },
                     "cv_file_name": {
                         "type": "string",
@@ -73,7 +71,7 @@ class JobSearchAndPreparation:
                         "items": {
                             "type": "string",
                         },
-                        "description": "The keywords to search for in the job listings",
+                        "description": "The keywords to search for in the job listings. Use a maximum of 2 keywords",
                     },
                     "location": {
                         "type": "string",

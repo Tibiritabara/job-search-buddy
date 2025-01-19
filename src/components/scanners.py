@@ -1,11 +1,12 @@
 import uuid
+from typing import Any
 
 from haystack import component
 from linkedin_api import Linkedin
 from pydantic import HttpUrl
 
 from utils.config import get_env
-from utils.types import JobListing
+from utils.types import JobListing, JobListings
 
 env = get_env()
 
@@ -20,12 +21,13 @@ class LinkedInScanner:
         self._client = Linkedin(
             env.linkedin_username.get_secret_value(),  # pylint: disable=no-member
             env.linkedin_password.get_secret_value(),  # pylint: disable=no-member
+            debug=True,
         )
 
-    @component.output_types(listings=list[JobListing])
-    def run(self, keywords: list[str], location: str) -> list[JobListing]:
+    @component.output_types(listings=dict[str, Any])
+    def run(self, keywords: list[str], location: str) -> dict[str, Any]:
         jobs = self._client.search_jobs(
-            keywords=",".join(keywords),
+            keywords=" ".join(keywords),
             location=location,
             limit=self.limit,
         )
@@ -37,9 +39,8 @@ class LinkedInScanner:
                     f"{str(env.linkedin_job_page_prefix)}/{job['trackingUrn'].split(':')[-1]}"
                 ),
                 title=job["title"],
-                poster_id=job["poster_id"],
+                poster_id=job["posterId"],
                 location=location,
-                description=job["description"],
                 reposted=job["repostedJob"],
                 keywords=keywords,
             )
@@ -48,7 +49,7 @@ class LinkedInScanner:
 
         for job_listing in job_listings:
             job_listing = self.__get_listing_details(job_listing)
-        return job_listings
+        return JobListings(listings=job_listings).model_dump()
 
     def __get_listing_details(
         self,
@@ -57,6 +58,6 @@ class LinkedInScanner:
         job_details = self._client.get_job(job_listing.tracking_urn.split(":")[-1])
         job_listing.company = job_details["companyDetails"][
             "com.linkedin.voyager.deco.jobs.web.shared.WebCompactJobPostingCompany"
-        ]["name"]
+        ]["companyResolutionResult"]["name"]
         job_listing.description = job_details["description"]["text"]
         return job_listing

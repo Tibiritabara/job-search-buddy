@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta
+from typing import Any
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -9,7 +10,7 @@ from haystack import component
 
 from utils.clients import mistral_client
 from utils.config import get_env
-from utils.types import EmailValidationResponse
+from utils.types import EmailValidationResponse, EmailValidationResponses
 
 env = get_env()
 
@@ -24,10 +25,10 @@ class EmailReader:
     def __init__(self, time_to_search: int = 2):
         self.time_to_search = time_to_search
 
-    @component.output_types(email_validation_response=EmailValidationResponse)
+    @component.output_types(email_validation_response=dict[str, Any])
     def run(
         self,
-    ) -> list[EmailValidationResponse]:
+    ) -> dict[str, Any]:
         creds = Credentials.from_authorized_user_file(
             env.google_credentials_path, SCOPES
         )
@@ -58,7 +59,7 @@ class EmailReader:
         messages = results.get("messages", [])
 
         if len(messages) == 0:
-            return []
+            return EmailValidationResponses(responses=[]).model_dump()
 
         recent_messages = []
         for message in messages:
@@ -70,7 +71,7 @@ class EmailReader:
                 recent_messages.append(msg)
 
         if len(recent_messages) == 0:
-            return []
+            return EmailValidationResponses(responses=[]).model_dump()
 
         print(f"Found {len(recent_messages)} unread messages from the last hour.")
 
@@ -99,7 +100,7 @@ class EmailReader:
                 subject=subject,
             )
             validations.append(response)
-        return validations
+        return EmailValidationResponses(responses=validations).model_dump()
 
     def validate_email(
         self,

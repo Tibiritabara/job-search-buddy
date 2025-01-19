@@ -22,6 +22,7 @@ class Environment(BaseSettings):
         linkedin_job_page_prefix (str): Linkedin job page prefix
         google_credentials_path (FilePath): Path to the Google credentials file
         google_token_path (FilePath): Path to the Google token file
+        openai_api_key (str): Azure OpenAI key
     """
 
     # App Settings
@@ -34,6 +35,7 @@ class Environment(BaseSettings):
     linkedin_job_page_prefix: HttpUrl = Field()
     google_credentials_path: FilePath = Field()
     google_token_path: FilePath = Field()
+    openai_api_key: SecretStr = Field()
 
 
 @lru_cache
